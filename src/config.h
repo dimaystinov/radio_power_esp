@@ -6,7 +6,7 @@
 
 // ---- Wi-Fi access point --------------------------------------------------
 #define CFG_AP_SSID "TX3000AC"        // network name (SSID)
-#define CFG_AP_PASSWORD "robossembler" // WPA2 password, 8+ characters
+#define CFG_AP_PASSWORD "00000000" // WPA2 password, 8+ characters
 #define CFG_AP_HOSTNAME "tx3000ac"    // mDNS name -> http://<hostname>.local/
 
 // ---- Flight controller MAVLink UART --------------------------------------

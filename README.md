@@ -96,7 +96,7 @@ Get-FileHash .\radio_power_esp32s3_oled_web.bin -Algorithm SHA256
 Дождитесь сообщения проверки записанных данных (`Hash of data verified`).
 Нажмите R/RESET **без удержания BOOT**, если приложение не запустилось автоматически.
 До ответа VTX экран показывает `SAFE NO VTX`, `-- mW` и `SET 25mW`.
-Для варианта `web` подключитесь к `TX3000AC`, пароль `robossembler`, и откройте
+Для варианта `web` подключитесь к `TX3000AC`, пароль `00000000`, и откройте
 http://192.168.4.1/.
 
 Если соединение зависло на `Connecting...`, повторите вход в загрузчик и снова
@@ -186,7 +186,7 @@ ESP32: http://192.168.4.1/
 
 1. Подайте питание на ESP32 с прошивкой `web`, дождитесь загрузки.
 2. В списке Wi-Fi на macOS, Windows или телефоне выберите **TX3000AC**.
-3. Введите пароль по умолчанию **robossembler**.
+3. Введите пароль по умолчанию **00000000**.
 4. Если система пишет «Без интернета», оставьте подключение к этой сети:
    это нормально, поскольку плата обслуживает только локальную страницу.
 5. В адресную строку браузера введите **http://192.168.4.1/**.
@@ -310,7 +310,7 @@ and measure bus timing; a successful build is not an on-device test.
 ```sh
 python3 -m unittest discover -s tests -v
 pio run -e esp32-s3 -e esp32-s3-no-web
-python3 tools/package_firmware.py --version v1.0.0
+python3 tools/package_firmware.py --version v1.0.1
 ```
 
 В `dist/` появятся два объединённых образа, `manifest.json`, `SHA256SUMS` и
