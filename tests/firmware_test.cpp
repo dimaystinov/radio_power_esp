@@ -1,5 +1,7 @@
 // Exercise the entire firmware translation unit; only hardware/HTTP/MAVLink
 // serialization are stubbed. Each scenario runs in its own process.
+#include <Wire.h>
+#include <U8g2lib.h>
 #include "../src/main.cpp"
 #include <cassert>
 #include <string>
@@ -19,6 +21,11 @@ void autoButton() {
 bool sentPower(uint8_t oneBased) {
  for(const auto& f:smartAudioSerial.writes)
   if(f.bytes.size()>=6 && f.bytes[3]==5 && f.bytes[5]==oneBased) return true;
+ return false;
+}
+bool screenHas(const char* value) {
+ if(oledFrames.empty()) return false;
+ for(const auto& text:oledFrames.back()) if(text.text==value) return true;
  return false;
 }
 int main(int argc,char** argv) {
@@ -89,5 +96,24 @@ int main(int argc,char** argv) {
   assert(!parseSmartAudioSettings(bad,sizeof bad));
   const uint8_t shortReply[]={0xAA,0x55,0x11,0x0E,0};
   assert(!parseSmartAudioSettings(shortReply,sizeof shortReply));
+ } else if(name=="oled_startup") {
+  setup();tick(300);
+  assert(screenHas("--"));assert(screenHas("SAFE NO VTX"));assert(screenHas("SET 25mW"));
+ } else if(name=="oled_reported_not_requested") {
+  setup();powerButton("5");vtxPowerLevel=2;recordSmartAudioSettings();tick(300);
+  assert(screenHas("500"));assert(!screenHas("3000"));
+  assert(screenHas("MANUAL"));assert(screenHas("SET 3000mW"));
+ } else if(name=="oled_stale") {
+  setup();powerButton("5");vtxPowerLevel=5;recordSmartAudioSettings();tick(300);
+  assert(screenHas("3000"));assert(screenHas("VTX OK"));
+  tick(6500);assert(screenHas("--"));assert(screenHas("MANUAL NO VTX"));
+ } else if(name=="oled_missing") {
+  Wire.present=false;setup();tick(3000);
+  assert(oledFrames.empty());assert(sentPower(1));
+ } else if(name=="oled_updates_bounded") {
+  setup();powerButton("5");
+  const auto before=oledFrames.size();
+  for(int i=0;i<500;++i){vtxPowerLevel=i%6;recordSmartAudioSettings();loop();fakeNow+=2;}
+  assert(oledFrames.size()>before);assert(oledFrames.size()-before<15);
  } else {return 2;}
 }

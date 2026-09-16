@@ -33,7 +33,8 @@ def firmware_case(case):
 for case in ("invalid_auto", "boot_failsafe", "foreign_rc", "desired_survives_readback",
              "responsive_loop", "status_expires", "invalid_http", "failsafe_cancels_high_power",
              "rc_timeout", "manual_ignores_timeout", "fresh_auto", "heartbeat_binding", "millis_wrap",
-             "pwm_edges", "status_reply", "frequency_readback", "parser_rejects_noise"):
+             "pwm_edges", "status_reply", "frequency_readback", "parser_rejects_noise",
+             "oled_startup", "oled_reported_not_requested", "oled_stale", "oled_missing", "oled_updates_bounded"):
     setattr(FirmwareTests, "test_" + case, firmware_case(case))
 
 class OverrideTests(unittest.TestCase):

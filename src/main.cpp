@@ -2,6 +2,11 @@
 
 #include "config.h"
 
+#if CFG_OLED_ENABLED
+#include <U8g2lib.h>
+#include <Wire.h>
+#endif
+
 #ifndef ENABLE_WEB_INTERFACE
 #define ENABLE_WEB_INTERFACE 1
 #endif
@@ -121,6 +126,70 @@ bool rcIsFresh(uint32_t now) {
     return rcSeen && rc11 >= CFG_RC_VALID_MIN && rc11 <= CFG_RC_VALID_MAX &&
            now - lastRcMs <= RC_TIMEOUT_MS;
 }
+
+#if CFG_OLED_ENABLED
+U8G2_SSD1306_72X40_ER_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
+bool oledReady = false;
+bool oledRendered = false;
+uint32_t lastOledMs = 0;
+
+void setupOled() {
+    if (!Wire.begin(CFG_OLED_SDA_PIN, CFG_OLED_SCL_PIN, 400000)) return;
+    Wire.setTimeOut(5);
+    Wire.beginTransmission(CFG_OLED_I2C_ADDRESS);
+    if (Wire.endTransmission() != 0) {
+        Serial.println("OLED unavailable; continuing without display");
+        return;
+    }
+    oled.setI2CAddress(CFG_OLED_I2C_ADDRESS << 1); // U8g2 uses an 8-bit address.
+    oled.setBusClock(400000);
+    oled.begin();
+    oledReady = true;
+}
+
+void processOled() {
+    const uint32_t now = millis();
+    if (!oledReady || (oledRendered && now - lastOledMs < CFG_OLED_REFRESH_MS)) return;
+    lastOledMs = now;
+    oledRendered = true;
+    // A missing/stuck display must not repeatedly delay RC/failsafe processing.
+    Wire.beginTransmission(CFG_OLED_I2C_ADDRESS);
+    if (Wire.endTransmission() != 0) {
+        oledReady = false;
+        Serial.println("OLED disconnected; display disabled until reboot");
+        return;
+    }
+    const bool fresh = vtxStatusValid && now - lastVtxStatusMs <= VTX_STATUS_STALE_MS &&
+                       vtxPowerLevel < sizeof(POWER_MW) / sizeof(POWER_MW[0]);
+    const char *mode = manualWebControl ? "MANUAL" : (rcIsFresh(now) ? "AUTO" : "SAFE");
+    char heading[16]{};
+    char power[8]{};
+    char detail[16]{};
+    snprintf(heading, sizeof(heading), "%s%s", mode, fresh ? "" : " NO VTX");
+    if (fresh) snprintf(power, sizeof(power), "%u", POWER_MW[vtxPowerLevel]);
+    else snprintf(power, sizeof(power), "--");
+    if (fresh && activePowerIndex == vtxPowerLevel) {
+        snprintf(detail, sizeof(detail), "VTX OK");
+    } else if (activePowerIndex >= 0 && activePowerIndex < sizeof(POWER_MW) / sizeof(POWER_MW[0])) {
+        snprintf(detail, sizeof(detail), "SET %umW", POWER_MW[activePowerIndex]);
+    } else {
+        snprintf(detail, sizeof(detail), "SET --mW");
+    }
+
+    oled.clearBuffer();
+    oled.setFont(u8g2_font_5x7_tf);
+    oled.drawStr(0, 7, heading);
+    const int unitWidth = oled.getStrWidth("mW");
+    oled.setFont(u8g2_font_logisoso16_tn);
+    const int numberWidth = oled.getStrWidth(power);
+    const int left = (72 - numberWidth - 3 - unitWidth) / 2;
+    oled.drawStr(left, 27, power);
+    oled.setFont(u8g2_font_5x7_tf);
+    oled.drawStr(left + numberWidth + 3, 27, "mW");
+    oled.drawStr(0, 39, detail);
+    oled.sendBuffer();
+}
+#endif
 
 uint8_t crc8DvbS2(const uint8_t *data, size_t length) {
     uint8_t crc = 0;
@@ -816,6 +885,10 @@ void setup() {
 
     // Queue startup power. It remains pending until confirmed by VTX readback.
     sendSmartAudioPower(0, "startup");
+#if CFG_OLED_ENABLED
+    setupOled();
+    processOled();
+#endif
 
 #if ENABLE_WEB_INTERFACE
     setupWebInterface();
@@ -840,5 +913,8 @@ void loop() {
     // Decide failsafe before advancing any pending SmartAudio transmission.
     processPowerControl();
     processSmartAudioStatus();
+#if CFG_OLED_ENABLED
+    processOled();
+#endif
     delay(2);
 }

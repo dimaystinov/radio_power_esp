@@ -46,3 +46,13 @@
 // failsafe power.  TX3000AC supports exactly 6 levels; do not add or
 // remove entries without changing the SmartAudio command code accordingly.
 #define CFG_POWER_MW {25, 250, 500, 1000, 2000, 3000}
+
+// ---- Built-in OLED: 01Space ESP32-S3-0.42OLED (SSD1306 72x40) --------------
+// Manufacturer example: SDA=41, SCL=40. Address is the 7-bit I2C address.
+#ifndef CFG_OLED_ENABLED
+#define CFG_OLED_ENABLED 1
+#endif
+#define CFG_OLED_SDA_PIN 41
+#define CFG_OLED_SCL_PIN 40
+#define CFG_OLED_I2C_ADDRESS 0x3C
+#define CFG_OLED_REFRESH_MS 250
